@@ -1,6 +1,13 @@
 <p align="center">
   <img src="assets/banner.png" width="80%" />
 </p>
+<p align="center">
+  <img src="https://img.shields.io/github/v/release/mahmutcanborann/BMW-AI-Assistant?color=blue" />
+  <img src="https://img.shields.io/github/stars/mahmutcanborann/BMW-AI-Assistant?style=social" />
+  <img src="https://img.shields.io/badge/LLM-Ollama-blue" />
+  <img src="https://img.shields.io/badge/RAG-ChromaDB-green" />
+  <img src="https://img.shields.io/badge/Frontend-Streamlit-ff4b4b" />
+</p>
 
 🚗 BMW Universal Assistant
 
