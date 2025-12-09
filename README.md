@@ -32,7 +32,6 @@ git clone https://github.com/mahmutcanborann/BMW-AI-Assistant.git
 cd BMW-AI-Assistant
 pip install -r requirements.txt
 
-
 Install LLM model via Ollama:
 
 ollama pull llama3.2:3b
@@ -43,22 +42,18 @@ Place BMW manuals inside:
 
 /data/manuals/
 
-
 Generate embeddings:
 
 python main.py
-
 
 This will create:
 
 /chroma_db/
 
-
 Chroma DB is not included in the repo — it is rebuilt locally for performance reasons.
 
 ▶ Run the Application
-streamlit run app2.py
-
+streamlit run app.py
 
 Example queries:
 
