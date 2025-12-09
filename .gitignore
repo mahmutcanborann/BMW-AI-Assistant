@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual env
+.venv/
+venv/
+
+# Streamlit & cache
+.streamlit/
+*.log
+
+# Chroma DB
+chroma_db/
+
+# VS Code
+.vscode/
+
+# Büyük / telifli dosyalar (manuel PDF’ler)
+data/*.pdf
+data/*.PDF

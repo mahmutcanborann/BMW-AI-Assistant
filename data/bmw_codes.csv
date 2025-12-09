@@ -1,0 +1,30 @@
+Code,Description,Solution
+P0171,System Too Lean (Bank 1),Check for vacuum leaks and the MAF sensor.
+P0174,System Too Lean (Bank 2),Inspect intake manifold gaskets and the PCV valve.
+P0300,Random/Multiple Cylinder Misfire Detected,Check spark plugs and ignition coils.
+P0301,Cylinder 1 Misfire Detected,Replace spark plug or coil pack on cylinder 1.
+P0302,Cylinder 2 Misfire Detected,Replace spark plug or coil pack on cylinder 2.
+P0303,Cylinder 3 Misfire Detected,Replace spark plug or coil pack on cylinder 3.
+P0304,Cylinder 4 Misfire Detected,Replace spark plug or coil pack on cylinder 4.
+P0305,Cylinder 5 Misfire Detected,Replace spark plug or coil pack on cylinder 5.
+P0306,Cylinder 6 Misfire Detected,Replace spark plug or coil pack on cylinder 6.
+P0420,Catalyst System Efficiency Below Threshold (Bank 1),Check catalytic converter and Oxygen (O2) sensors.
+P0430,Catalyst System Efficiency Below Threshold (Bank 2),Check catalytic converter and Oxygen (O2) sensors.
+P0128,Coolant Thermostat Issue,Replace thermostat or coolant temperature sensor.
+P1083,Fuel Control Mixture Lean (Bank 1 Sensor 1),Check fuel pressure and injectors.
+P1085,Fuel Control Mixture Lean (Bank 2 Sensor 1),Check for vacuum leaks on Bank 2.
+P0500,Vehicle Speed Sensor Malfunction,Inspect ABS sensors and wheel speed sensors.
+P1343,Misfire Cylinder 1 with Fuel Cut-off,Critical misfire; check ignition coil immediately.
+P1345,Misfire Cylinder 2 with Fuel Cut-off,Critical misfire; check ignition coil immediately.
+P1347,Misfire Cylinder 3 with Fuel Cut-off,Critical misfire; check ignition coil immediately.
+P0102,Mass or Volume Air Flow Circuit Low Input,Clean or replace MAF sensor.
+P0442,Evaporative Emission Control System Leak Detected (Small Leak),Check gas cap seal and EVAP lines.
+P0455,Evaporative Emission Control System Leak Detected (Gross Leak),Check gas cap and purge valve.
+P0011,Camshaft Position - Timing Over-Advanced (Bank 1),Check VANOS solenoids and oil level.
+P0014,Camshaft Position - Timing Over-Retarded (Bank 1),Check exhaust VANOS solenoid.
+P0113,Intake Air Temperature Sensor 1 Circuit High,Check IAT sensor connection.
+P0401,Exhaust Gas Recirculation (EGR) Flow Insufficient,Clean EGR valve and ports.
+P0135,O2 Sensor Heater Circuit (Bank 1 Sensor 1),Replace pre-cat Oxygen sensor.
+P0155,O2 Sensor Heater Circuit (Bank 2 Sensor 1),Replace pre-cat Oxygen sensor.
+U1100,Lost Communication With ECM/PCM,Check wiring harness and battery voltage.
+P1093,Pre-catalyst Fuel Trim System Too Rich Bank 2,Check fuel injectors for leaks.
