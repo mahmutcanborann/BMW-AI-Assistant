@@ -59,7 +59,6 @@ Example queries:
 
 What does P0300 mean?
 How to pair an iPhone in BMW 3 Series?
-P0171 in BMW F30 — possible causes?
 
 🤝 Contributing
 
