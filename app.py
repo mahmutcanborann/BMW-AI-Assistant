@@ -1,412 +1,460 @@
-import os
-import sys
-import re
-
 import streamlit as st
+import requests
+import base64
+from pathlib import Path
+import os
+API_URL = "http://127.0.0.1:8000/ask"
 
-sys.path.append(os.getcwd())
+st.set_page_config(
+    page_title="BMW AI Assistant",
+    page_icon="🚘",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+if "page" not in st.session_state:
+    st.session_state.page = "home"
+if "result" not in st.session_state:
+    st.session_state.result = None
 
-from langchain_chroma import Chroma
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_community.chat_models import ChatOllama   # 🔴 BURASI DEĞİŞTİ
-from langchain_core.runnables import RunnablePassthrough, RunnableLambda
-from langchain_core.output_parsers import StrOutputParser
+query = ""
+ask_clicked = False
+def img_to_base64(path):
+    return base64.b64encode(Path(path).read_bytes()).decode()
 
-# --------------------------
-#  Sabitler
-# --------------------------
+logo_base64 = img_to_base64("b.png")
+car_base64 = img_to_base64("a.jpg")
 
-DATA_FOLDER = "data"
-CHROMA_PATH = "chroma_db"
-CODES_SOURCE_NAME = "bmw_codes.csv"
-def inject_custom_css():
-    st.markdown(
-        """
-        <style>
-        /* --- APP BACKGROUND (full turquoise) --- */
-        .stApp {
-            background: radial-gradient(circle at top, #00AEEF 0%, #00CFFD 40%, #009ECF 100%);
-            color:#ffffff;
-            font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont;
-        }
-        .bmw-card, .bmw-header {
-    background: rgba(0,0,0,0.92);
-    backdrop-filter: blur(8px) brightness(1.05);
-    box-shadow: 0 8px 18px rgba(0,0,0,0.75);
-    border: 1px solid rgba(255,255,255,0.10);
-}
-        .bmw-header {
-    background: linear-gradient(180deg, #000 0%, #111 50%, #000 100%);
-}
+st.markdown(f"""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-     .bmw-header-title {
+* {{
+    font-family: 'Inter', sans-serif;
+}}
+
+html, body, [data-testid="stAppViewContainer"] {{
+    background-color: #02060e !important;
+}}
+
+[data-testid="stHeader"] {{
+    display: none !important;
+}}
+
+
+[data-testid="stToolbar"] {{
+    display: none !important;
+}}
+
+[data-testid="stDecoration"] {{
+    display: none !important;
+}}
+
+#MainMenu, footer {{
+    display: none !important;
+}}
+
+[data-testid="stAppViewContainer"] {{
+    background:
+        linear-gradient(90deg, rgba(2,6,14,0.96) 0%, rgba(2,6,14,0.82) 35%, rgba(2,6,14,0.25) 68%, rgba(2,6,14,0.72) 100%),
+        url("data:image/jpeg;base64,{car_base64}");
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    color: white;
+}}
+
+[data-testid="stAppViewContainer"] > .main {{
+    background: transparent !important;
+}}
+[data-testid="stSidebar"] {{
+    background: rgba(3, 8, 18, 0.88);
+    border-right: 1px solid rgba(255,255,255,0.08);
+}}
+
+[data-testid="stSidebar"] * {{
+    color: white;
+}}
+
+.block-container {{
+    padding-top: 0rem !important;
+    padding-bottom: 1.5rem;
+}}
+
+.logo-title {{
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 38px;
+}}
+
+.logo-img {{
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 0 20px rgba(0,136,255,0.35);
+}}
+
+.brand-text {{
+    font-size: 21px;
     font-weight: 700;
-    letter-spacing: 0.14em;
-}
-     .bmw-label {
+}}
+
+.hero-title {{
+    font-size: 46px;
+    font-weight: 800;
+    line-height: 1.15;
+    margin-top: 55px;
+}}
+
+.blue {{
+    color: #1683ff;
+}}
+
+.subtitle {{
+    font-size: 21px;
+    margin-top: 25px;
+    color: rgba(255,255,255,0.9);
+}}
+
+.input-wrapper {{
+    margin-top: 28px;
+    max-width: 610px;
+}}
+
+.example-title {{
+    margin-top: 48px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    letter-spacing: 1.2px;
+    color: #b7c9df;
     font-weight: 700;
-    opacity: 0.9;
-}
-   /* --- HEADER --- */
-        .bmw-header {
-            background: linear-gradient(135deg, #006E9F, #003B55);
-            border-radius: 18px;
-            padding: 18px 24px;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.55);
-        }
+}}
 
-        .bmw-header-title {
-            font-size: 26px;
-            font-weight: 650;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-        }
+.example-card {{
+    padding: 14px 18px;
+    margin-bottom: 12px;
+    max-width: 520px;
+    border-radius: 14px;
+    background: rgba(8,17,34,0.72);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: white;
+}}
 
-        .bmw-header-subtitle {
-            font-size: 14px;
-            opacity: 0.9;
-        }
+.glass-card {{
+    background: rgba(4, 12, 25, 0.84);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 20px;
+    padding: 22px;
+    box-shadow: 0 18px 45px rgba(0,0,0,0.35);
+    backdrop-filter: blur(14px);
+    margin-bottom: 18px;
+}}
 
-        /* --- CARD STYLE --- */
-        .bmw-card {
-    background: rgba(0, 0, 0, 0.92);
-    border-radius: 18px;
-    padding: 20px 22px;
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.70);
-}
+.card-title {{
+    font-size: 14px;
+    color: #c8d7ec;
+    letter-spacing: 1px;
+    font-weight: 700;
+    margin-bottom: 18px;
+}}
 
-        .bmw-label {
-            font-size: 14px;
-            font-weight: 600;
-            letter-spacing: .04em;
-            text-transform: uppercase;
-            color: #B7F3FF;
-        }
+.metric-row {{
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: 13px;
+}}
 
-    textarea, input[type="text"] {
-    background: rgba(255,255,255,0.75) !important;   /* stays light */
-    border-radius: 12px !important;
-    border: 1px solid rgba(0,0,0,0.55) !important;
-    color: #000000 !important;                       /* << now black */
-}
+.metric-label {{
+    color: #aebcd0;
+}}
 
+.metric-value {{
+    color: #1683ff;
+    font-weight: 700;
+}}
 
+.answer-text {{
+    color: rgba(255,255,255,0.92);
+    line-height: 1.65;
+    font-size: 14px;
+}}
 
-        /* --- BUTTON --- */
-        .stButton>button {
-            background: linear-gradient(135deg, #00DAFF, #006E9F);
-            color: white;
-            border-radius: 999px;
-            border: none;
-            padding: 0.45rem 1.6rem;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            box-shadow: 0 12px 28px rgba(0, 119, 163, 0.65);
-        }
-        .stButton>button:hover {
-            filter: brightness(1.12);
-            transform: scale(1.04);
-        }
+.source-item {{
+    padding: 8px 0;
+    color: rgba(255,255,255,0.9);
+    font-size: 13px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}}
 
-        /* --- ANSWER TEXT --- */
-        .bmw-answer {
-            font-size: 15px;
-            line-height: 1.55;
-            color:#E9FCFF;
-        }
+.footer-card {{
+    margin-top: 70px;
+    padding: 17px 22px;
+    max-width: 740px;
+    border-radius: 16px;
+    background: rgba(4,12,25,0.76);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #b8c8dc;
+}}
 
-        /* --- ROUTING PANEL --- */
-        .bmw-routing code {
-            font-size: 12px !important;
-            color:#000;
-        }
+.stTextInput > div > div > input {{
+    background: rgba(5,13,28,0.9) !important;
+    color: white !important;
+    border-radius: 14px !important;
+    border: 1px solid rgba(36,137,255,0.75) !important;
+    height: 54px !important;
+    box-shadow: 0 0 32px rgba(0,115,255,0.25);
+}}
 
-        /* --- SIDEBAR TURQUOISE GLASS --- */
-        section[data-testid="stSidebar"] {
-            background: linear-gradient(175deg, #008CB7, #004E63);
-            border-right: 1px solid rgba(255,255,255,0.22);
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+.stTextInput > div > div > input::placeholder {{
+    color: rgba(255,255,255,0.35) !important;
+}}
 
+.stButton > button {{
+    background: linear-gradient(135deg, #006eff, #1683ff);
+    color: white;
+    border: none;
+    border-radius: 14px;
+    height: 46px;
+    font-weight: 700;
+}}
 
-# --------------------------
-#  Yardımcı fonksiyonlar
-# --------------------------
+.sidebar-item {{
+    padding: 15px 18px;
+    margin-bottom: 12px;
+    border-radius: 14px;
+    background: rgba(11,24,45,0.62);
+    border: 1px solid rgba(255,255,255,0.08);
+}}
 
-def clean_bmw_text(text: str) -> str:
-    text = re.sub(r'Online Edition for Part no.*', '', text)
-    text = re.sub(r'\n\s*\d+\s*\n', '\n', text)
-    text = text.replace('-\n', '')
-    text = re.sub(r'\n+', '\n', text)
-    return text
+.active {{
+    border-left: 4px solid #1683ff;
+    background: rgba(22,131,255,0.15);
+}}
+.active {{
+    border-left: 4px solid #1683ff;
+    background: rgba(22,131,255,0.15);
+}}
 
+/* 👇 BURAYA EKLE */
+button, [role="button"] {{
+    outline: none !important;
+    box-shadow: none !important;
+}}
 
-def format_docs(docs) -> str:
-    return "\n\n".join(doc.page_content for doc in docs)
+button:focus, [role="button"]:focus {{
+    outline: none !important;
+    box-shadow: none !important;
+}}
 
+button:active, [role="button"]:active {{
+    outline: none !important;
+    box-shadow: none !important;
+}}
 
-ERROR_CODE_PATTERN = re.compile(r"\b[PBUC]?\d{3,4}\b", re.IGNORECASE)
+</style>
+""", unsafe_allow_html=True)
 
-def extract_error_code(query: str):
-    m = ERROR_CODE_PATTERN.search(query.upper())
-    return m.group(0) if m else None
+with st.sidebar:
+    st.markdown(f"""
+    <div class="logo-title">
+        <img class="logo-img" src="data:image/png;base64,{logo_base64}">
+        <div class="brand-text">BMW AI Assistant</div>
+    </div>
+    """, unsafe_allow_html=True)
 
+    if st.button("💬 New Chat", use_container_width=True):
+        st.session_state.page = "home"
+        st.session_state.result = None
 
-MODEL_KEYWORDS = [
-    "1 series", "2 series", "3 series", "4 series", "5 series", "7 series",
-    "x1", "x3", "x4", "x5", "x6", "x7",
-    "i3", "i4", "i5", "i7", "ix", "xm",
-    "f30", "f10", "g20", "g30", "m3", "m5", "m4", "m2",
-    "bmw"
-]
+    if st.button("❓ Ask Question", use_container_width=True):
+        st.session_state.page = "ask"
 
-def contains_model(query: str) -> bool:
-    lower = query.lower()
-    return any(k in lower for k in MODEL_KEYWORDS)
+    if st.button("ℹ️ About", use_container_width=True):
+        st.session_state.page = "about"
 
-# --------------------------
-#  RAG BİLEŞENLERİNİ YÜKLE
-# --------------------------
+    st.markdown("<div style='height: 300px;'></div>", unsafe_allow_html=True)
 
-@st.cache_resource
-def load_rag():
-    # 1) Embedding
-    embedding_function = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2"
-    )
+    st.button("🌙 Dark Mode", use_container_width=True)
+    st.button("⚙️ Settings", use_container_width=True)
+left, right = st.columns([1.65, 1])
 
-    # 2) Chroma DB
-    if not os.path.exists(CHROMA_PATH):
-        raise RuntimeError(
-            f"'{CHROMA_PATH}' klasörü bulunamadı. "
-            "Önce terminalde 'python main.py' çalıştırıp veritabanını oluşturmalısın."
-        )
+if st.session_state.page == "home":
+    with left:
+        st.markdown("""
+        <div class="hero-title">
+            Hello,<br>
+            <span class="blue">BMW AI Assistant</span> is here.
+        </div>
+        <div class="subtitle">How can I help you today?</div>
+        """, unsafe_allow_html=True)
 
-    vectorstore = Chroma(
-        collection_name="bmw_manuals",
-        persist_directory=CHROMA_PATH,
-        embedding_function=embedding_function
-    )
+        st.markdown('<div class="input-wrapper">', unsafe_allow_html=True)
 
-    # 3) Retrievers
-    codes_retriever = vectorstore.as_retriever(
-        search_kwargs={
-            "k": 4,
-            "filter": {"source": CODES_SOURCE_NAME}
-        }
-    )
+        col_input, col_btn = st.columns([6, 1])
 
-    manuals_retriever = vectorstore.as_retriever(
-        search_kwargs={
-            "k": 6,
-            "filter": {"source": {"$ne": CODES_SOURCE_NAME}}
-        }
-    )
+        with col_input:
+            query = st.text_input(
+                "Ask your question",
+                placeholder="Ask your question about your BMW...",
+                label_visibility="collapsed",
+                key="home_query"
+            )
+        with col_btn:
+                ask_clicked = st.button("➜", use_container_width=True, key="home_ask_btn")
+        
 
-    # 4) LLM (burada senin kullandığın modele göre ayarla)
-    llm = ChatOllama(
-    model="llama3.2:3b",
-    temperature=0,
-    num_gpu=0)
+        st.markdown('</div>', unsafe_allow_html=True)
 
+        st.markdown('<div class="example-title">EXAMPLE QUESTIONS</div>', unsafe_allow_html=True)
 
-    # Eğer ana kodunda hala "llama3" kullanıyorsan şunu kullan:
-    # llm = ChatOllama(model="llama3", temperature=0)
+        examples = [
+            "How do I turn on the headlights in my BMW?",
+            "Apple CarPlay setup for BMW 3 Series (G20)",
+            "What does error code P0456 mean?",
+            "How do I change the BMW X5 (G05) key battery?"
+        ]
 
-    system_prompt = (
-        "You are an expert BMW technical assistant. "
-        "You have access to two types of data: "
-        "1. **Owner's Manuals** (PDFs) for specific vehicle details. "
-        "2. **Error Code Database** (CSV) for technical diagnostics. "
-        "\n\n"
-        "INSTRUCTIONS:\n"
-        "- If the user asks about an **Error Code** (e.g., P0300), prefer the CSV data for the definition.\n"
-        "- If the user asks about a **Specific Model** (e.g., '3 Series'), use the relevant manual context.\n"
-        "- If the user provides BOTH a Model AND an Error Code, COMBINE the information:\n"
-        "  - First explain the error code meaning (from CSV),\n"
-        "  - Then explain what to check or how it applies to that specific BMW model (from PDFs).\n"
-        "- Always answer in **ENGLISH**.\n"
-        "- If the answer is not found in the context, say 'Information not found in my resources'.\n"
-        "\n"
-        "{context}"
-    )
+        for ex in examples:
+            st.markdown(f'<div class="example-card">✦ &nbsp; {ex}</div>', unsafe_allow_html=True)
 
-    prompt = ChatPromptTemplate.from_messages(
-        [("system", system_prompt), ("human", "{input}")]
-    )
+        st.markdown("""
+        <div class="footer-card">
+            🛡️ &nbsp; Queries are processed in real-time. No personal data is stored.
+        </div>
+        """, unsafe_allow_html=True)
+elif st.session_state.page == "ask":
+    with left:
+        st.markdown("<div class='hero-title'>Ask your BMW question</div>", unsafe_allow_html=True)
 
-    qa_chain = prompt | llm | StrOutputParser()
+        st.markdown('<div class="input-wrapper">', unsafe_allow_html=True)
 
-    manuals_rag_chain = (
-        {
-            "input": RunnablePassthrough(),
-            "context": manuals_retriever | RunnableLambda(format_docs),
-        }
-        | prompt
-        | llm
-        | StrOutputParser()
-    )
+        col_input, col_btn = st.columns([6, 1])
 
-    return {
-        "codes_retriever": codes_retriever,
-        "manuals_retriever": manuals_retriever,
-        "qa_chain": qa_chain,
-        "manuals_rag_chain": manuals_rag_chain,
-    }
-
-def answer_question(query: str, rag_objects):
-    codes_retriever = rag_objects["codes_retriever"]
-    manuals_retriever = rag_objects["manuals_retriever"]
-    qa_chain = rag_objects["qa_chain"]
-    manuals_rag_chain = rag_objects["manuals_rag_chain"]
-
-    error_code = extract_error_code(query)
-    has_model = contains_model(query)
-
-    # 1) Sadece hata kodu
-    if error_code and not has_model:
-        routing = f"Detected error code: {error_code} (code-only route → CSV)"
-        codes_docs = codes_retriever.invoke(query)
-        context = format_docs(codes_docs)
-
-        if not codes_docs:
-            routing += " | No code docs found, fallback to manuals RAG."
-            answer = manuals_rag_chain.invoke(query)
-        else:
-            answer = qa_chain.invoke({"input": query, "context": context})
-
-        return answer, routing, codes_docs
-
-    # 2) Model + hata kodu
-    if error_code and has_model:
-        routing = f"Detected error code: {error_code} with model info (code + manuals fusion)"
-        codes_docs = codes_retriever.invoke(query)
-        manuals_docs = manuals_retriever.invoke(query)
-        merged_docs = codes_docs + manuals_docs
-        context = format_docs(merged_docs)
-
-        answer = qa_chain.invoke({"input": query, "context": context})
-        return answer, routing, merged_docs
-
-    # 3) Normal soru
-    routing = "No explicit error code detected (manuals RAG route)"
-    answer = manuals_rag_chain.invoke(query)
-    docs = manuals_retriever.invoke(query)
-    return answer, routing, docs
-
-# --------------------------
-#  STREAMLIT ARAYÜZ
-# --------------------------
-
-def main():
-    st.set_page_config(
-        page_title="BMW Universal Assistant",
-        page_icon="🚗",
-        layout="wide"
-    )
-
-    # Inject custom CSS
-    inject_custom_css()
-
-    # Top header section
-    col_logo, col_title = st.columns([1, 4])
-    with col_logo:
-        st.image("b.png", width=110)  # BMW logo (b.png)
-    with col_title:
-        st.markdown(
-            """
-            <div class="bmw-header">
-                <div>
-                    <div class="bmw-header-title">BMW Universal Assistant</div>
-                    <div class="bmw-header-subtitle">
-                        Local RAG • Ollama • Chroma • Technical Diagnostics & Manuals
-                    </div>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    st.markdown("")  # small vertical space
-
-    # Layout: left = question & answer, right = routing/context debug
-    left_col, right_col = st.columns([2.1, 1.4])
-
-    # Sidebar (static information)
-    with st.sidebar:
-        st.header("⚙️ RAG Status")
-        st.write(f"📁 Data folder: `{DATA_FOLDER}`")
-        st.write(f"💾 Vector DB path: `{CHROMA_PATH}`")
-
-        st.markdown("---")
-        st.caption("🧠 LLM: `llama3.2:3b` (Ollama)")
-        st.caption("🔎 Embeddings: `all-MiniLM-L6-v2` (HF)")
-
-    # Load RAG components
-    try:
-        rag_objects = load_rag()
-    except Exception as e:
-        st.error(f"RAG initialization failed: {e}")
-        st.stop()
-
-    # LEFT COLUMN: question + answer
-    with left_col:
-        st.markdown('<div class="bmw-card">', unsafe_allow_html=True)
-        st.markdown('<div class="bmw-label">Ask your question</div>', unsafe_allow_html=True)
-
-        default_q = ""
-        query = st.text_input(
-            label="",
-            value=default_q,
-            placeholder='E.g. "In my BMW 3 Series, how to pair my iPhone?" or "What does error code P0300 mean?"',
-        )
-
-        ask_clicked = st.button("Ask")
-
-        if (ask_clicked or query) and query.strip():
-            with st.spinner("Analyzing your BMW data..."):
-                answer, routing, docs = answer_question(query, rag_objects)
-
-            st.markdown("---")
-            st.subheader("🤖 Assistant")
-            st.markdown(f'<div class="bmw-answer">{answer}</div>', unsafe_allow_html=True)
-
-            st.markdown("</div>", unsafe_allow_html=True)  # close bmw-card
-        else:
-            st.markdown("</div>", unsafe_allow_html=True)
-
-    # RIGHT COLUMN: routing + retrieved context
-    with right_col:
-        st.markdown('<div class="bmw-card">', unsafe_allow_html=True)
-        st.markdown('<div class="bmw-label">Routing & Context</div>', unsafe_allow_html=True)
-
-        if (ask_clicked or query) and query.strip():
-            st.markdown("**🧠 Routing**")
-            st.markdown('<div class="bmw-routing">', unsafe_allow_html=True)
-            st.code(routing, language="text")
-            st.markdown('</div>', unsafe_allow_html=True)
-
-            with st.expander("📄 Retrieved context (debug)", expanded=False):
-                for i, d in enumerate(docs, start=1):
-                    st.markdown(f"**Chunk {i} – Source: `{d.metadata.get('source', 'unknown')}`**")
-                    st.write(d.page_content[:800] + ("..." if len(d.page_content) > 800 else ""))
-        else:
-            st.write(
-                "You have not asked a question yet. "
-                "Once you submit a question on the left, RAG routing and the related manual/code context will appear here."
+        with col_input:
+            query = st.text_input(
+                "Ask your question",
+                placeholder="BMW 320i 2020 how to reset oil light",
+                label_visibility="collapsed",
+                key="ask_query"
             )
 
-        st.markdown("</div>", unsafe_allow_html=True)
+        with col_btn:
+            ask_clicked = st.button("➜", use_container_width=True,key="ask_btn")
 
-if __name__ == "__main__":
-    main()
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        st.markdown("""
+        <div class="glass-card">
+            <div class="card-title">ASK QUESTION GUIDE</div>
+            <div class="answer-text">
+                <b>Supported:</b> model-specific questions, BMW feature usage, warning messages, and error codes.<br>
+                <b>Example:</b> BMW 320i 2020 how to reset oil light<br>
+                <b>Scope:</b> Designed for BMW owner manual assistance, not mechanical repair advice.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+elif st.session_state.page == "about":
+    with left:
+        st.markdown("<div class='hero-title'>About</div>", unsafe_allow_html=True)
+
+        st.markdown("""
+        <div class="glass-card">
+        This is a RAG-based BMW assistant.<br><br>
+
+        <b>Features:</b><br>
+        • Hybrid retrieval<br>
+        • Reranking<br>
+        • Model/year filtering<br><br>
+
+        <b>Developer:</b><br>
+        Mahmut Can Boran
+        </div>
+        """, unsafe_allow_html=True)
+
+with right:
+    result = st.session_state.result
+
+    if ask_clicked and query.strip():
+        try:
+            response = requests.post(API_URL, json={"query": query}, timeout=120)
+            response.raise_for_status()
+            st.session_state.result = response.json()
+            result = st.session_state.result
+        except Exception as e:
+            st.error(f"API error: {e}")
+
+    if result:
+        route = result.get("route", "-")
+        retrieval_strategy = result.get("retrieval_strategy", "-")
+        model = result.get("model") or "-"
+        year = result.get("year") or "-"
+        error_code = result.get("error_code") or "-"
+        warning_note = result.get("warning_note") or "-"
+        answer = result.get("answer", "No answer.")
+        sources = result.get("sources", [])
+
+        st.markdown(f"""
+        <div class="glass-card">
+            <div class="card-title">RESPONSE OVERVIEW</div>
+            <div class="metric-row"><span class="metric-label">ROUTE</span><span class="metric-value">{route}</span></div>
+            <div class="metric-row"><span class="metric-label">RETRIEVAL STRATEGY</span><span class="metric-value">{retrieval_strategy}</span></div>
+            <div class="metric-row"><span class="metric-label">DETECTED MODEL</span><span>{model}</span></div>
+            <div class="metric-row"><span class="metric-label">DETECTED YEAR</span><span>{year}</span></div>
+            <div class="metric-row"><span class="metric-label">DETECTED ERROR CODE</span><span style="color:#ff8a00;font-weight:700;">{error_code}</span></div>
+            <div class="metric-row"><span class="metric-label">WARNING NOTE</span><span>{warning_note}</span></div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown(f"""
+        <div class="glass-card">
+            <div class="card-title">ANSWER</div>
+            <div class="answer-text">{answer}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        source_html = ""
+
+        source_html = ""
+
+        for i, src in enumerate(sources, start=1):
+            if isinstance(src, dict):
+                source_name = os.path.basename(src.get("source", "unknown"))
+                page = src.get("page") or "-"
+
+                source_html += f'<div class="source-item">Doc {i}: {source_name} · Page {page}</div>'
+            else:
+                source_html += f'<div class="source-item">Doc {i}: {src}</div>'
+
+        st.markdown(f"""
+        <div class="glass-card">
+            <div class="card-title">SOURCES</div>
+            {source_html if source_html else "<div class='source-item'>No sources found.</div>"}
+        </div>
+        """, unsafe_allow_html=True)
+
+    else:
+        st.markdown("""
+        <div class="glass-card">
+            <div class="card-title">RESPONSE OVERVIEW</div>
+            <div class="metric-row"><span class="metric-label">ROUTE</span><span class="metric-value">waiting</span></div>
+            <div class="metric-row"><span class="metric-label">RETRIEVAL STRATEGY</span><span class="metric-value">waiting</span></div>
+            <div class="metric-row"><span class="metric-label">DETECTED MODEL</span><span>-</span></div>
+            <div class="metric-row"><span class="metric-label">DETECTED YEAR</span><span>-</span></div>
+            <div class="metric-row"><span class="metric-label">DETECTED ERROR CODE</span><span style="color:#ff8a00;font-weight:700;">-</span></div>
+        </div>
+
+        <div class="glass-card">
+            <div class="card-title">ANSWER</div>
+            <div class="answer-text">
+                Ask a BMW manual or diagnostic question to see the answer here.
+            </div>
+        </div>
+
+        <div class="glass-card">
+            <div class="card-title">SOURCES</div>
+            <div class="source-item">Doc 1: source will appear here · Page -</div>
+        </div>
+        """, unsafe_allow_html=True)

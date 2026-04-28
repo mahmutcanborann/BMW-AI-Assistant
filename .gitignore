@@ -20,3 +20,5 @@ chroma_db/
 # Büyük / telifli dosyalar (manuel PDF’ler)
 data/*.pdf
 data/*.PDF
+
+*.pkl

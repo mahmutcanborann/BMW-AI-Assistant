@@ -1,75 +1,198 @@
+# 🚗 BMW AI Assistant — Advanced RAG System
+
 <p align="center">
-  <img src="assets/banner.png" width="80%" />
+  <img src="assets/banner.png" width="85%" />
 </p>
+
 <p align="center">
-  <img src="https://img.shields.io/github/v/release/mahmutcanborann/BMW-AI-Assistant?color=blue" />
-  <img src="https://img.shields.io/github/stars/mahmutcanborann/BMW-AI-Assistant?style=social" />
   <img src="https://img.shields.io/badge/LLM-Ollama-blue" />
-  <img src="https://img.shields.io/badge/RAG-ChromaDB-green" />
+  <img src="https://img.shields.io/badge/RAG-Hybrid-green" />
   <img src="https://img.shields.io/badge/Frontend-Streamlit-ff4b4b" />
+  <img src="https://img.shields.io/badge/Backend-FastAPI-009688" />
 </p>
 
-🚗 BMW Universal Assistant
+## 🧠 Overview
 
-A local, privacy-preserving AI assistant built for BMW vehicles.
-Uses RAG retrieval + Chroma DB + Ollama + Streamlit, able to process fault codes and look up information from manuals — all fully offline.
+BMW AI Assistant is a privacy-first, fully local RAG system designed for BMW vehicles.
 
-Ideal for quick reference, diagnostic lookup, and manual-based information queries without cloud dependency.
+It combines:
 
-🔍 What It Can Do
+- Owner manuals (PDF)
+- OBD-II error codes (CSV)
+- Natural language queries
 
-Retrieve OBD-II fault code descriptions (CSV-based)
+into a single intelligent assistant that prioritizes accuracy, safety, and reliability over guesswork.
 
-Read & extract information from BMW owner manuals (PDF)
+> ⚠️ The system avoids hallucinations and returns safe fallback responses when information is uncertain.
 
-Smart routing:
+## 🖥️ UI Preview
 
-Error Code → CSV lookup
+### 🏠 Home Screen
 
-Model/Feature Query → Manuals RAG
+<p align="center">
+  <img src="assets/ui-main.png" width="85%" />
+</p>
 
-Mixed Input → Combines both
+### 🤖 Response View
 
-Runs entirely on-device (no API, no internet required)
+<p align="center">
+  <img src="assets/ui-answer.png" width="85%" />
+</p>
 
-Modern Streamlit UI for fast Q&A
+## ⚡ What Makes This Different
 
-🛠 Installation
+This is not a basic RAG demo.
+
+It is a multi-stage retrieval system with safety-aware design.
+
+### 🔍 Retrieval Layer
+
+- Hybrid retrieval (BM25 + Vector Search)
+- Reciprocal Rank Fusion (RRF)
+- Cross-encoder reranking
+
+### 🧩 Query Intelligence
+
+- Query normalization
+- LLM-based query rewriting
+- Feature-aware query expansion
+
+### 🚗 BMW-Aware Logic
+
+- Model detection
+- Year extraction
+- Generation mapping
+- Error code recognition
+
+### 🛡 Safety Layer
+
+- Guardrails to reduce hallucinations
+- Context-grounded answers only
+- Controlled fallback responses
+
+## 🏗 System Architecture
+
+This diagram shows the full RAG pipeline from user query to final response.
+
+<p align="center">
+  <img src="assets/architecture.png" width="80%" />
+</p>
+
+## 🛠 Tech Stack
+
+- FastAPI — backend API
+- Streamlit — frontend UI
+- LangChain — pipeline orchestration
+- Chroma — embedding storage
+- Ollama — local LLM inference
+
+### Models
+
+- Embedding: `all-MiniLM-L6-v2`
+- Reranker: `ms-marco-MiniLM-L-6-v2`
+- LLM: `llama3.2:3b`
+
+## 📁 Project Structure
+
+````bash
+project/
+│
+├── main.py              # FastAPI backend
+├── app.py               # Streamlit frontend
+├── data/                # Manuals + error codes
+├── chroma_db/           # Vector DB
+├── splits_cache.pkl     # Cache
+├── assets/              # Images
+└── README.md
+## ⚙️ Installation
+
+```bash
 git clone https://github.com/mahmutcanborann/BMW-AI-Assistant.git
 cd BMW-AI-Assistant
+
+python -m venv .venv
+.venv\Scripts\activate   # Windows
+# source .venv/bin/activate  # Mac/Linux
+
 pip install -r requirements.txt
+## 🤖 Setup Local LLM
 
-Install LLM model via Ollama:
-
+```bash
 ollama pull llama3.2:3b
 
-📦 Preparing the Database
+## 📦 Build Database / Run Backend
 
-Place BMW manuals inside:
+```bash
+uvicorn main:app --reload
+````
 
-/data/manuals/
+**First run will automatically:**
 
-Generate embeddings:
+- Load PDFs
+- Split documents
+- Create embeddings
+- Build Chroma DB
 
-python main.py
+---
 
-This will create:
+## 🚀 Run UI
 
-/chroma_db/
-
-Chroma DB is not included in the repo — it is rebuilt locally for performance reasons.
-
-▶ Run the Application
+```bash
 streamlit run app.py
+```
 
-Example queries:
+---
 
-What does P0300 mean?
-How to pair an iPhone in BMW 3 Series?
+## 💬 Example Queries
 
-🤝 Contributing
+- BMW 320i 2020 how to turn on headlights
+- What does error code P0456 mean?
+- Apple CarPlay setup BMW G20
+- How to reset oil service light
 
-Contributions and suggestions are welcome.
-If this project is useful to you:
+---
 
-⭐ Please star the repository.
+## ⚠️ Known Challenges
+
+### 🧩 Legacy Documentation Leakage
+
+BMW manuals vary by:
+
+- Model year
+- Generation
+- Equipment
+
+This can lead to:
+
+- Mismatched UI instructions
+- Outdated features
+
+**In this system:**
+
+- The issue is explicitly handled
+- Warnings are generated
+- Fallback is preferred over guessing
+
+---
+
+## 🚧 Limitations
+
+- No VIN-level precision
+- Depends on available manuals
+- Not intended for mechanical repair diagnosis
+- Some answers may fallback intentionally
+
+---
+
+## 🧠 Key Insight
+
+> A reliable RAG system is not about retrieving more data —  
+> it is about knowing when not to answer.
+
+---
+
+## 👨‍💻 Author
+
+**Mahmut Can Boran**  
+AI Engineer (RAG Systems & Automotive AI)
+🔗 LinkedIn: https://www.linkedin.com/in/mahmut-can-boran/
