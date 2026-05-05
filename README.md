@@ -23,7 +23,11 @@ It combines:
 
 into a single intelligent assistant that prioritizes accuracy, safety, and reliability over guesswork.
 
+The system uses metadata-aware retrieval and controlled generation to avoid speculative or hallucinated responses.
+
 > ⚠️ The system avoids hallucinations and returns safe fallback responses when information is uncertain.
+
+---
 
 ## 🖥️ UI Preview
 
@@ -39,10 +43,11 @@ into a single intelligent assistant that prioritizes accuracy, safety, and relia
   <img src="assets/ui-answer.png" width="85%" />
 </p>
 
+---
+
 ## ⚡ What Makes This Different
 
 This is not a basic RAG demo.
-
 It is a multi-stage retrieval system with safety-aware design.
 
 ### 🔍 Retrieval Layer
@@ -70,21 +75,23 @@ It is a multi-stage retrieval system with safety-aware design.
 - Context-grounded answers only
 - Controlled fallback responses
 
-## 🏗 System Architecture
+---
 
-This diagram shows the full RAG pipeline from user query to final response.
+## 🏗 System Architecture
 
 <p align="center">
   <img src="assets/architecture.png" width="80%" />
 </p>
 
+---
+
 ## 🛠 Tech Stack
 
-- FastAPI — backend API
-- Streamlit — frontend UI
-- LangChain — pipeline orchestration
-- Chroma — embedding storage
-- Ollama — local LLM inference
+- FastAPI
+- Streamlit
+- LangChain
+- Chroma
+- Ollama
 
 ### Models
 
@@ -92,18 +99,24 @@ This diagram shows the full RAG pipeline from user query to final response.
 - Reranker: `ms-marco-MiniLM-L-6-v2`
 - LLM: `llama3.2:3b`
 
+---
+
 ## 📁 Project Structure
 
-````bash
+```bash
 project/
 │
-├── main.py              # FastAPI backend
-├── app.py               # Streamlit frontend
-├── data/                # Manuals + error codes
-├── chroma_db/           # Vector DB
-├── splits_cache.pkl     # Cache
-├── assets/              # Images
+├── main.py
+├── app.py
+├── data/
+├── chroma_db/
+├── splits_cache.pkl
+├── assets/
 └── README.md
+```
+
+---
+
 ## ⚙️ Installation
 
 ```bash
@@ -115,23 +128,23 @@ python -m venv .venv
 # source .venv/bin/activate  # Mac/Linux
 
 pip install -r requirements.txt
+```
+
+---
+
 ## 🤖 Setup Local LLM
 
 ```bash
 ollama pull llama3.2:3b
+```
 
-## 📦 Build Database / Run Backend
+---
+
+## 📦 Run Backend
 
 ```bash
 uvicorn main:app --reload
-````
-
-**First run will automatically:**
-
-- Load PDFs
-- Split documents
-- Create embeddings
-- Build Chroma DB
+```
 
 ---
 
@@ -139,6 +152,24 @@ uvicorn main:app --reload
 
 ```bash
 streamlit run app.py
+```
+
+---
+
+## 📂 Add Your Own Manuals
+
+Place your PDF manuals inside the `data/` folder:
+
+```bash
+data/
+├── BMW_3_series_2020.pdf
+├── BMW_X5_2019.pdf
+```
+
+### Naming format
+
+```bash
+BMW_<MODEL>_<YEAR>.pdf
 ```
 
 ---
@@ -152,47 +183,24 @@ streamlit run app.py
 
 ---
 
-## ⚠️ Known Challenges
-
-### 🧩 Legacy Documentation Leakage
-
-BMW manuals vary by:
-
-- Model year
-- Generation
-- Equipment
-
-This can lead to:
-
-- Mismatched UI instructions
-- Outdated features
-
-**In this system:**
-
-- The issue is explicitly handled
-- Warnings are generated
-- Fallback is preferred over guessing
-
----
-
-## 🚧 Limitations
+## ⚠️ Limitations
 
 - No VIN-level precision
 - Depends on available manuals
-- Not intended for mechanical repair diagnosis
-- Some answers may fallback intentionally
+- Not intended for mechanical diagnosis
 
 ---
 
 ## 🧠 Key Insight
 
-> A reliable RAG system is not about retrieving more data —  
+> A reliable RAG system is not about retrieving more data —
 > it is about knowing when not to answer.
 
 ---
 
 ## 👨‍💻 Author
 
-**Mahmut Can Boran**  
+Mahmut Can Boran
 AI Engineer (RAG Systems & Automotive AI)
-🔗 LinkedIn: https://www.linkedin.com/in/mahmut-can-boran/
+
+🔗 https://www.linkedin.com/in/mahmut-can-boran/
